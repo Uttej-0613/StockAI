@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Stock AI Assistant</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
+margin:0;
+}
+
+.container{
+width:85%;
+margin:auto;
+padding:30px;
+}
+
+h1{
+text-align:center;
+}
+
+input{
+padding:10px;
+border-radius:5px;
+border:none;
+}
+
+button{
+background:#00c6ff;
+padding:10px;
+border:none;
+color:white;
+border-radius:5px;
+cursor:pointer;
+}
+
+button:hover{
+background:#0094cc;
+}
+
+.card{
+background:#1c2938;
+padding:20px;
+margin-top:20px;
+border-radius:10px;
+}
+
+.chart-container{
+width:600px;
+margin:auto;
+margin-top:20px;
+}
+
+canvas{
+background:white;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>📈 Stock AI Assistant</h1>
+
+<input id="symbol" placeholder="Enter stock (AAPL / NVDA / TCS)">
+
+<button onclick="loadStock()">Analyze</button>
+
+<div class="card">
+
+<h2 id="name"></h2>
+
+<p id="company"></p>
+
+<p id="sector"></p>
+
+<p id="price"></p>
+
+<p id="trend"></p>
+
+<p id="score"></p>
+
+</div>
+
+<div class="chart-container">
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<div class="card">
+
+<h3>Latest News</h3>
+
+<ul id="news"></ul>
+
+</div>
+
+<div class="card">
+
+<h3>Top Stocks Today</h3>
+
+<ul id="topstocks"></ul>
+
+</div>
+
+<div class="card">
+
+<h3>Ask AI</h3>
+
+<input id="question" placeholder="Ask about the stock">
+
+<button onclick="ask()">Ask</button>
+
+<p id="answer"></p>
+
+</div>
+
+</div>
+
+<script>
+
+let chart
+
+async function loadStock(){
+
+let symbol=document.getElementById("symbol").value
+
+let res=await fetch("http://127.0.0.1:8000/stock/"+symbol)
+
+let data=await res.json()
+
+if(data.error){
+alert("Stock not found")
+return
+}
+
+document.getElementById("name").innerHTML=data.symbol
+document.getElementById("company").innerHTML="Company: "+data.company
+document.getElementById("sector").innerHTML="Sector: "+data.sector
+document.getElementById("price").innerHTML="Price: "+data.close
+document.getElementById("trend").innerHTML="Trend: "+data.trend
+document.getElementById("score").innerHTML="AI Score: "+data.score
+
+drawChart(data)
+
+let newsList=document.getElementById("news")
+
+newsList.innerHTML=""
+
+data.news.forEach(n=>{
+
+let li=document.createElement("li")
+
+li.innerHTML=n.title+" ("+n.sentiment+")"
+
+newsList.appendChild(li)
+
+})
+
+}
+
+function drawChart(data){
+
+const ctx=document.getElementById("chart")
+
+if(chart){
+chart.destroy()
+}
+
+chart=new Chart(ctx,{
+
+type:'line',
+
+data:{
+labels:data.dates,
+datasets:[{
+label:"Stock Price",
+data:data.prices,
+borderColor:"#00c6ff",
+borderWidth:2
+}]
+},
+
+options:{
+responsive:true,
+plugins:{
+legend:{
+display:true
+}
+}
+}
+
+})
+
+}
+
+async function ask(){
+
+let symbol=document.getElementById("symbol").value
+let q=document.getElementById("question").value
+
+let res=await fetch(`http://127.0.0.1:8000/ask/${symbol}/${q}`)
+
+let data=await res.json()
+
+document.getElementById("answer").innerHTML=data.answer
+
+}
+
+async function loadTopStocks(){
+
+let res=await fetch("http://127.0.0.1:8000/top-stocks")
+
+let data=await res.json()
+
+let list=document.getElementById("topstocks")
+
+list.innerHTML=""
+
+data.stocks.forEach(s=>{
+
+let li=document.createElement("li")
+
+li.innerHTML=s
+
+list.appendChild(li)
+
+})
+
+}
+
+loadTopStocks()
+
+</script>
+
+</body>
+
+</html>

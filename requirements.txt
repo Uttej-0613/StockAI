@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+yfinance
+pandas
+numpy
+scikit-learn
+joblib
+openai
+faiss-cpu
+chromadb
+apscheduler
+websockets
