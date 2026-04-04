@@ -1,129 +1,144 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-
-<title>Stock AI Assistant</title>
-
+<title>Pro Stock AI Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-
 body{
-font-family:Arial;
-background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+font-family:'Segoe UI';
+background:#0f172a;
 color:white;
 margin:0;
 }
 
-.container{
-width:85%;
-margin:auto;
-padding:30px;
-}
-
-h1{
+.header{
 text-align:center;
+padding:20px;
 }
 
 input{
 padding:10px;
-border-radius:5px;
+border-radius:6px;
 border:none;
+width:250px;
 }
 
 button{
-background:#00c6ff;
 padding:10px;
+background:#3b82f6;
 border:none;
 color:white;
-border-radius:5px;
+border-radius:6px;
 cursor:pointer;
 }
 
-button:hover{
-background:#0094cc;
+.container{
+width:90%;
+margin:auto;
+}
+
+/* INFO */
+.info{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-top:20px;
+text-align:center;
+}
+
+/* METRICS GRID */
+.metrics{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:10px;
+margin-top:15px;
+}
+
+.metric{
+background:#020617;
+padding:10px;
+border-radius:8px;
+}
+
+/* MAIN GRID */
+.grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+margin-top:20px;
 }
 
 .card{
-background:#1c2938;
+background:#1e293b;
 padding:20px;
-margin-top:20px;
 border-radius:10px;
 }
 
-.chart-container{
-width:600px;
-margin:auto;
-margin-top:20px;
-}
+.up{color:#22c55e;}
+.down{color:#ef4444;}
 
-canvas{
-background:white;
-border-radius:10px;
+/* CHAT */
+.chat-box{
+max-height:200px;
+overflow-y:auto;
+background:#020617;
+padding:10px;
+border-radius:8px;
+margin-bottom:10px;
 }
-
 </style>
-
 </head>
 
 <body>
 
+<div class="header">
+<h1>📊 Pro Stock AI Dashboard</h1>
+<input id="symbol" placeholder="Enter stock">
+<button onclick="loadStock()">Analyze</button>
+</div>
+
 <div class="container">
 
-<h1>📈 Stock AI Assistant</h1>
-
-<input id="symbol" placeholder="Enter stock (AAPL / NVDA / TCS)">
-
-<button onclick="loadStock()">Analyze</button>
-
-<div class="card">
-
-<h2 id="name"></h2>
-
+<div class="info">
+<h2 id="name">-</h2>
 <p id="company"></p>
-
 <p id="sector"></p>
-
 <p id="price"></p>
-
 <p id="trend"></p>
 
-<p id="score"></p>
+<div class="metrics">
+<div class="metric">Change<br><b id="change"></b></div>
+<div class="metric">% Change<br><b id="percent"></b></div>
+<div class="metric">Volume<br><b id="volume"></b></div>
+<div class="metric">Market Cap<br><b id="marketcap"></b></div>
+<div class="metric">P/E Ratio<br><b id="pe"></b></div>
+</div>
 
 </div>
 
-<div class="chart-container">
+<div class="grid">
 
+<div class="card">
+<h3>📈 Chart</h3>
 <canvas id="chart"></canvas>
-
 </div>
 
 <div class="card">
-
-<h3>Latest News</h3>
-
+<h3>📰 News</h3>
 <ul id="news"></ul>
+</div>
 
 </div>
 
-<div class="card">
+<!-- AI CHAT -->
+<div class="card" style="margin-top:20px;">
+<h3>🤖 AI Assistant</h3>
 
-<h3>Top Stocks Today</h3>
+<div class="chat-box" id="chatbox"></div>
 
-<ul id="topstocks"></ul>
-
-</div>
-
-<div class="card">
-
-<h3>Ask AI</h3>
-
-<input id="question" placeholder="Ask about the stock">
-
-<button onclick="ask()">Ask</button>
-
-<p id="answer"></p>
+<input id="question" placeholder="Ask about stock">
+<button onclick="ask()">Send</button>
 
 </div>
 
@@ -131,120 +146,87 @@ border-radius:10px;
 
 <script>
 
-let chart
+let chart=null;
 
+// LOAD STOCK
 async function loadStock(){
 
-let symbol=document.getElementById("symbol").value
+let symbol=document.getElementById("symbol").value;
 
-let res=await fetch("http://127.0.0.1:8000/stock/"+symbol)
-
-let data=await res.json()
+let res=await fetch(`http://127.0.0.1:8000/stock/${symbol}`);
+let data=await res.json();
 
 if(data.error){
-alert("Stock not found")
-return
+alert(data.error);
+return;
 }
 
-document.getElementById("name").innerHTML=data.symbol
-document.getElementById("company").innerHTML="Company: "+data.company
-document.getElementById("sector").innerHTML="Sector: "+data.sector
-document.getElementById("price").innerHTML="Price: "+data.close
-document.getElementById("trend").innerHTML="Trend: "+data.trend
-document.getElementById("score").innerHTML="AI Score: "+data.score
+document.getElementById("name").innerHTML=data.symbol;
+document.getElementById("company").innerHTML=data.company;
+document.getElementById("sector").innerHTML=data.sector;
+document.getElementById("price").innerHTML="₹"+data.close;
 
-drawChart(data)
+document.getElementById("trend").innerHTML=
+`<span class="${data.trend.includes('UP')?'up':'down'}">${data.trend}</span>`;
 
-let newsList=document.getElementById("news")
+// METRICS
+document.getElementById("change").innerHTML=data.change;
+document.getElementById("percent").innerHTML=data.change_percent+"%";
+document.getElementById("volume").innerHTML=data.volume;
+document.getElementById("marketcap").innerHTML=data.market_cap;
+document.getElementById("pe").innerHTML=data.pe_ratio;
 
-newsList.innerHTML=""
+// CHART
+drawChart(data);
 
+// NEWS
+let html="";
 data.news.forEach(n=>{
-
-let li=document.createElement("li")
-
-li.innerHTML=n.title+" ("+n.sentiment+")"
-
-newsList.appendChild(li)
-
-})
+html+=`<li>${n.title}</li>`;
+});
+document.getElementById("news").innerHTML=html;
 
 }
 
+// CHART
 function drawChart(data){
 
-const ctx=document.getElementById("chart")
+const ctx=document.getElementById("chart").getContext("2d");
 
-if(chart){
-chart.destroy()
-}
+if(chart) chart.destroy();
 
 chart=new Chart(ctx,{
-
 type:'line',
-
 data:{
 labels:data.dates,
 datasets:[{
-label:"Stock Price",
 data:data.prices,
-borderColor:"#00c6ff",
 borderWidth:2
 }]
 },
-
-options:{
-responsive:true,
-plugins:{
-legend:{
-display:true
-}
-}
+options:{animation:false}
+});
 }
 
-})
-
-}
-
+// AI CHAT
 async function ask(){
 
-let symbol=document.getElementById("symbol").value
-let q=document.getElementById("question").value
+let symbol=document.getElementById("symbol").value;
+let q=document.getElementById("question").value;
 
-let res=await fetch(`http://127.0.0.1:8000/ask/${symbol}/${q}`)
+let chat=document.getElementById("chatbox");
 
-let data=await res.json()
+chat.innerHTML += `<p><b>You:</b> ${q}</p>`;
 
-document.getElementById("answer").innerHTML=data.answer
+let res=await fetch(`http://127.0.0.1:8000/ask/${symbol}/${q}`);
+let data=await res.json();
 
+chat.innerHTML += `<p><b>AI:</b> ${data.answer}</p>`;
+
+chat.scrollTop = chat.scrollHeight;
 }
-
-async function loadTopStocks(){
-
-let res=await fetch("http://127.0.0.1:8000/top-stocks")
-
-let data=await res.json()
-
-let list=document.getElementById("topstocks")
-
-list.innerHTML=""
-
-data.stocks.forEach(s=>{
-
-let li=document.createElement("li")
-
-li.innerHTML=s
-
-list.appendChild(li)
-
-})
-
-}
-
-loadTopStocks()
 
 </script>
 
 </body>
-
 </html>
