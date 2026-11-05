@@ -1,0 +1,1 @@
+"""StockAI application package."""

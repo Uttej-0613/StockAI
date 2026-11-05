@@ -1,232 +1,53 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<title>Pro Stock AI Dashboard</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StockAI — Financial Intelligence</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
-body{
-font-family:'Segoe UI';
-background:#0f172a;
-color:white;
-margin:0;
-}
-
-.header{
-text-align:center;
-padding:20px;
-}
-
-input{
-padding:10px;
-border-radius:6px;
-border:none;
-width:250px;
-}
-
-button{
-padding:10px;
-background:#3b82f6;
-border:none;
-color:white;
-border-radius:6px;
-cursor:pointer;
-}
-
-.container{
-width:90%;
-margin:auto;
-}
-
-/* INFO */
-.info{
-background:#1e293b;
-padding:20px;
-border-radius:10px;
-margin-top:20px;
-text-align:center;
-}
-
-/* METRICS GRID */
-.metrics{
-display:grid;
-grid-template-columns:repeat(5,1fr);
-gap:10px;
-margin-top:15px;
-}
-
-.metric{
-background:#020617;
-padding:10px;
-border-radius:8px;
-}
-
-/* MAIN GRID */
-.grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:20px;
-margin-top:20px;
-}
-
-.card{
-background:#1e293b;
-padding:20px;
-border-radius:10px;
-}
-
-.up{color:#22c55e;}
-.down{color:#ef4444;}
-
-/* CHAT */
-.chat-box{
-max-height:200px;
-overflow-y:auto;
-background:#020617;
-padding:10px;
-border-radius:8px;
-margin-bottom:10px;
-}
-</style>
-</head>
-
+:root{color-scheme:dark;--bg:#080d18;--panel:#101a2b;--panel2:#0c1422;--line:#23324a;--text:#edf3ff;--muted:#91a2bd;--blue:#77a7ff;--green:#40d6a0;--red:#ff7185}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% -10%,#1c3155 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,Segoe UI,sans-serif}
+header{height:76px;border-bottom:1px solid #1d2a40;display:flex;align-items:center;justify-content:space-between;padding:0 max(5vw,22px);position:sticky;top:0;background:#080d18eF;backdrop-filter:blur(16px);z-index:4}
+.brand{font-weight:800;letter-spacing:-.04em;font-size:21px}.brand span{color:var(--blue)}.tag{color:var(--muted);font-size:12px;border:1px solid var(--line);border-radius:99px;padding:6px 10px}
+main{max-width:1220px;margin:38px auto;padding:0 22px}.eyebrow{color:var(--blue);text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:800}
+h1{font-size:clamp(30px,5vw,48px);letter-spacing:-.05em;line-height:1.06;margin:10px 0} .sub{color:var(--muted);max-width:650px}
+.search{display:flex;gap:10px;margin:26px 0 20px;max-width:620px}.search input,input,textarea{background:#0c1524;border:1px solid var(--line);color:var(--text);padding:13px 15px;border-radius:12px;outline:none;min-width:0}.search input{flex:1}
+button{background:linear-gradient(135deg,#83b3ff,#4d80e9);color:#071120;border:0;padding:12px 18px;border-radius:11px;font-weight:800;cursor:pointer}button.secondary{background:#17253b;color:#dce8ff;border:1px solid var(--line)}button:disabled{opacity:.55}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.panel{background:linear-gradient(145deg,#121f33,#0d1625);border:1px solid var(--line);border-radius:17px;padding:19px;box-shadow:0 16px 45px #0002}.metric small{color:var(--muted)}.metric strong{display:block;font-size:25px;margin-top:8px;letter-spacing:-.04em}.positive{color:var(--green)}.negative{color:var(--red)}
+.two{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:14px}.panel h2{font-size:16px;margin:0 0 15px}.chart-wrap{height:285px}.muted{color:var(--muted)}.chat{margin-top:14px}.chatrow{display:flex;gap:9px}.chatrow input{flex:1}.answer{white-space:pre-wrap;background:#0a1321;border:1px solid var(--line);border-radius:12px;padding:15px;margin-top:13px;min-height:60px}.sources{font-size:12px;color:var(--muted);margin-top:10px}.docrow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #223047;font-size:13px}
+footer{color:#70819c;font-size:12px;text-align:center;padding:36px 20px}.status{color:var(--muted);font-size:12px;margin-top:8px}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}@media(max-width:520px){header{height:64px}.tag{display:none}.search{flex-direction:column}.grid{gap:8px}.metric strong{font-size:20px}.panel{padding:14px}}
+</style></head>
 <body>
-
-<div class="header">
-<h1>📊 Pro Stock AI Dashboard</h1>
-<input id="symbol" placeholder="Enter stock">
-<button onclick="loadStock()">Analyze</button>
-</div>
-
-<div class="container">
-
-<div class="info">
-<h2 id="name">-</h2>
-<p id="company"></p>
-<p id="sector"></p>
-<p id="price"></p>
-<p id="trend"></p>
-
-<div class="metrics">
-<div class="metric">Change<br><b id="change"></b></div>
-<div class="metric">% Change<br><b id="percent"></b></div>
-<div class="metric">Volume<br><b id="volume"></b></div>
-<div class="metric">Market Cap<br><b id="marketcap"></b></div>
-<div class="metric">P/E Ratio<br><b id="pe"></b></div>
-</div>
-
-</div>
-
-<div class="grid">
-
-<div class="card">
-<h3>📈 Chart</h3>
-<canvas id="chart"></canvas>
-</div>
-
-<div class="card">
-<h3>📰 News</h3>
-<ul id="news"></ul>
-</div>
-
-</div>
-
-<!-- AI CHAT -->
-<div class="card" style="margin-top:20px;">
-<h3>🤖 AI Assistant</h3>
-
-<div class="chat-box" id="chatbox"></div>
-
-<input id="question" placeholder="Ask about stock">
-<button onclick="ask()">Send</button>
-
-</div>
-
-</div>
-
+<header><div class="brand">◈ Stock<span>AI</span></div><div class="tag">RESEARCH WORKSPACE · v2.0</div></header>
+<main>
+<div class="eyebrow">Evidence-first market intelligence</div><h1>Understand the market.<br><span style="color:#83adff">Ground every answer.</span></h1>
+<p class="sub">Market indicators and document-grounded AI research in one workspace. No fabricated forecasts. No unsupported investment calls.</p>
+<div class="search"><input id="ticker" value="TCS.NS" placeholder="Ticker e.g. TCS.NS or AAPL"><button id="analyze">Analyze market ↗</button></div><div id="status" class="status">Enter a ticker to load its market snapshot.</div>
+<section class="grid" style="margin-top:20px">
+<div class="panel metric"><small>Last close</small><strong id="price">—</strong><small id="company">Market price</small></div>
+<div class="panel metric"><small>Daily change</small><strong id="change">—</strong><small id="changePct">Previous close comparison</small></div>
+<div class="panel metric"><small>RSI · 14</small><strong id="rsi">—</strong><small>Momentum indicator</small></div>
+<div class="panel metric"><small>Volume</small><strong id="volume">—</strong><small id="asof">Latest available session</small></div>
+</section>
+<section class="two">
+<div class="panel"><h2>Price history <span class="muted" style="font-weight:400">· adjusted close</span></h2><div class="chart-wrap"><canvas id="chart"></canvas></div></div>
+<div class="panel"><h2>Market fundamentals</h2><div class="docrow"><span class="muted">Sector</span><b id="sector">—</b></div><div class="docrow"><span class="muted">Market cap</span><b id="cap">—</b></div><div class="docrow"><span class="muted">P/E ratio</span><b id="pe">—</b></div><div class="docrow"><span class="muted">SMA 20</span><b id="sma20">—</b></div><div class="docrow"><span class="muted">SMA 50</span><b id="sma50">—</b></div><p class="status">Source: Yahoo Finance via yfinance. Data may be delayed.</p></div>
+</section>
+<section class="two">
+<div class="panel chat"><h2>Ask StockAI <span class="muted" style="font-weight:400">· RAG research assistant</span></h2><p class="muted" style="font-size:13px">Ingest annual reports, quarterly results or research notes, then ask questions. Answers cite retrieved passages.</p><div class="chatrow"><input id="question" placeholder="What were the key revenue risks in the latest report?"><button id="ask">Ask AI</button></div><div id="answer" class="answer">Your answer will appear here with source references.</div><div id="sources" class="sources"></div></div>
+<div class="panel"><h2>Knowledge library</h2><label class="muted" for="file" style="font-size:13px">Add a PDF, TXT, Markdown or CSV report</label><input id="file" type="file" accept=".pdf,.txt,.md,.csv" style="width:100%;margin:12px 0"><button id="upload" class="secondary">Ingest document</button><div id="docs" style="margin-top:14px"></div></div>
+</section>
+<p class="status">Educational research only. Not investment advice. Verify all figures against primary filings and official exchange sources.</p>
+</main><footer>STOCKAI · FINANCIAL RESEARCH, GROUNDED IN EVIDENCE</footer>
 <script>
-
-let chart=null;
-
-// LOAD STOCK
-async function loadStock(){
-
-let symbol=document.getElementById("symbol").value;
-
-let res=await fetch(`http://127.0.0.1:8000/stock/${symbol}`);
-let data=await res.json();
-
-if(data.error){
-alert(data.error);
-return;
-}
-
-document.getElementById("name").innerHTML=data.symbol;
-document.getElementById("company").innerHTML=data.company;
-document.getElementById("sector").innerHTML=data.sector;
-document.getElementById("price").innerHTML="₹"+data.close;
-
-document.getElementById("trend").innerHTML=
-`<span class="${data.trend.includes('UP')?'up':'down'}">${data.trend}</span>`;
-
-// METRICS
-document.getElementById("change").innerHTML=data.change;
-document.getElementById("percent").innerHTML=data.change_percent+"%";
-document.getElementById("volume").innerHTML=data.volume;
-document.getElementById("marketcap").innerHTML=data.market_cap;
-document.getElementById("pe").innerHTML=data.pe_ratio;
-
-// CHART
-drawChart(data);
-
-// NEWS
-let html="";
-data.news.forEach(n=>{
-html+=`<li>${n.title}</li>`;
-});
-document.getElementById("news").innerHTML=html;
-
-}
-
-// CHART
-function drawChart(data){
-
-const ctx=document.getElementById("chart").getContext("2d");
-
-if(chart) chart.destroy();
-
-chart=new Chart(ctx,{
-type:'line',
-data:{
-labels:data.dates,
-datasets:[{
-data:data.prices,
-borderWidth:2
-}]
-},
-options:{animation:false}
-});
-}
-
-// AI CHAT
-async function ask(){
-
-let symbol=document.getElementById("symbol").value;
-let q=document.getElementById("question").value;
-
-let chat=document.getElementById("chatbox");
-
-chat.innerHTML += `<p><b>You:</b> ${q}</p>`;
-
-let res=await fetch(`http://127.0.0.1:8000/ask/${symbol}/${q}`);
-let data=await res.json();
-
-chat.innerHTML += `<p><b>AI:</b> ${data.answer}</p>`;
-
-chat.scrollTop = chat.scrollHeight;
-}
-
-</script>
-
-</body>
-</html>
+let chart;
+const $=id=>document.getElementById(id);
+const fmt=(v,currency="USD")=>v==null?"—":new Intl.NumberFormat("en-IN",{style:"currency",currency,maximumFractionDigits:2}).format(v);
+async function api(path,options={}){const r=await fetch(path,options);const d=await r.json();if(!r.ok)throw new Error(d.detail||"Request failed");return d}
+async function analyze(){const symbol=$("ticker").value.trim();if(!symbol)return;$("status").textContent="Loading market data…";$("analyze").disabled=true;try{const d=await api("/api/v1/market/"+encodeURIComponent(symbol));$("price").textContent=fmt(d.price,d.currency);$("company").textContent=d.company+" · "+d.symbol;$("change").textContent=fmt(d.change,d.currency);$("change").className=d.change>=0?"positive":"negative";$("changePct").textContent=(d.change_percent??"—")+"% today";$("rsi").textContent=d.rsi14??"—";$("volume").textContent=Number(d.volume).toLocaleString("en-IN");$("asof").textContent=new Date(d.as_of_utc).toLocaleString();$("sector").textContent=d.sector||"—";$("cap").textContent=d.market_cap?Number(d.market_cap).toLocaleString("en-IN"):"—";$("pe").textContent=d.pe_ratio??"—";$("sma20").textContent=d.sma20??"—";$("sma50").textContent=d.sma50??"—";if(chart)chart.destroy();chart=new Chart($("chart"),{type:"line",data:{labels:d.history.map(x=>x.date),datasets:[{data:d.history.map(x=>x.close),borderColor:"#83adff",backgroundColor:"#83adff18",fill:true,tension:.25,pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#8293ad",maxTicksLimit:7},grid:{display:false}},y:{ticks:{color:"#8293ad"},grid:{color:"#23324a"}}}}});$("status").textContent="Loaded "+d.symbol+" · "+d.source}catch(e){$("status").textContent=e.message}finally{$("analyze").disabled=false}}
+async function ask(){const question=$("question").value.trim();if(question.length<3)return;$("answer").textContent="Retrieving evidence and preparing answer…";$("sources").textContent="";$("ask").disabled=true;try{const d=await api("/api/v1/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question,symbol:$("ticker").value.trim(),top_k:5})});$("answer").textContent=d.answer;$("sources").textContent=d.sources?.length?"Sources: "+d.sources.map((s,i)=>"["+ (i+1)+"] "+s.source+" · relevance "+s.score).join(" | "):"No document sources retrieved. Ingest relevant reports first."}catch(e){$("answer").textContent=e.message}finally{$("ask").disabled=false}}
+async function upload(){const f=$("file").files[0];if(!f)return;$("upload").disabled=true;try{const body=new FormData();body.append("file",f);const d=await api("/api/v1/documents/ingest",{method:"POST",body});$("status").textContent="Ingested "+d.filename+" · "+d.chunks+" chunks · "+d.embedding;await loadDocs()}catch(e){$("status").textContent=e.message}finally{$("upload").disabled=false}}
+async function loadDocs(){try{const d=await api("/api/v1/documents");$("docs").innerHTML=d.documents.map(x=>'<div class="docrow"><span>'+x.filename.replace(/[<>&"]/g,"")+'</span><span class="muted">'+x.chunks+' chunks</span></div>').join("")||'<p class="muted">No documents ingested yet.</p>'}catch(e){$("docs").textContent=e.message}}
+$("analyze").onclick=analyze;$("ask").onclick=ask;$("upload").onclick=upload;$("ticker").addEventListener("keydown",e=>{if(e.key==="Enter")analyze()});$("question").addEventListener("keydown",e=>{if(e.key==="Enter")ask()});loadDocs();
+</script></body></html>

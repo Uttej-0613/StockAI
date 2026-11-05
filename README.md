@@ -1,49 +1,71 @@
-# Stock Market Prediction Query Bot
+# StockAI — Financial Research, Grounded by Evidence
 
-An AI-powered system that predicts stock market trends and answers user queries using machine learning and sentiment analysis.
+StockAI is a lightweight financial research workspace combining market data, document-grounded retrieval-augmented generation (RAG), and a responsive dashboard. It is an educational research tool, **not investment advice**.
 
+## What it does
 
+- Fetches historical market data and computes transparent indicators (SMA, EMA, RSI, daily change).
+- Ingests PDF, Markdown, text, and CSV research documents into a persistent SQLite knowledge store.
+- Chunks documents with overlap, embeds them with OpenAI embeddings when configured, and retrieves relevant passages using cosine similarity. If embeddings are unavailable, retrieval degrades explicitly to lexical ranking rather than pretending semantic search happened.
+- Answers questions from retrieved evidence with source citations. Market data is passed as a separate, timestamped context.
+- Stores a local watchlist and ingested document metadata.
+- Exposes a versioned FastAPI API and a polished browser dashboard.
 
-# Description
-This project is a Python-based AI chatbot that allows users to:
-- Ask questions about stock prices
-- Get predicted stock trends based on historical data
-- Analyze news sentiment to understand market behavior
-- Work with live stock data (if connected)
+## Architecture
 
-It combines **ML models**, **NLP**, and **real-time data processing** to provide actionable insights.
+```text
+frontend/index.html
+       │ HTTP /api/v1
+backend/main.py ── services/market.py
+       │           services/rag.py ── SQLite (chunks + embeddings)
+       └────────── services/storage.py
+```
 
+The RAG pipeline is deliberately explicit: extract → normalize → chunk → embed → persist → retrieve → answer with citations. No hidden if/else chatbot is presented as RAG.
 
-# Features
-- Predict stock prices using machine learning
-- Analyze news sentiment to gauge market trends
-- Query-based chatbot interface for user interaction
-- Support for live data integration
-- Multiple Python modules for clean structure
+## Quick start (Python 3.11+)
 
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+copy .env.example .env   # Windows; on macOS/Linux use: cp .env.example .env
+uvicorn backend.main:app --reload
+```
 
+Open http://127.0.0.1:8000. API docs: http://127.0.0.1:8000/docs.
 
-# Tech Stack
-- Python
-- Pandas, NumPy
-- scikit-learn
-- Matplotlib / Seaborn (for visualization)
-- NLP (Natural Language Processing for sentiment analysis)
-- Optional: Flask / Streamlit for web interface
+Add an OpenAI API key to `.env` to enable generated answers and semantic embeddings. Without a key, StockAI still provides market data and evidence retrieval, but returns retrieved evidence instead of fabricating an LLM answer. API usage incurs provider costs.
 
-- stock-bot/
-├── main.py # Main program
-├── model.py # ML model code
-├── sentiment.py # News sentiment analysis
-├── data_processing.py # Data cleaning and preprocessing
-├── live_data.py # Live data handling
-├── utils.py # Helper functions
-├── requirements.txt # Libraries used
-├── README.md
-└── dataset/ # CSV or data files
+## Document ingestion
 
-# How to Run
-1. Clone the repo: https://github.com/Uttej-0613/StockAI/
-2. Install dependencies:  pip install -r requirements.txt
-3. 3. Run the main program:
-   
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/documents/ingest \
+  -F "file=@your_quarterly_report.pdf"
+```
+
+Supported formats: PDF (requires `pypdf`), TXT, Markdown, and CSV. Install `pypdf` for PDF support: `pip install pypdf`.
+
+Ask a question:
+```bash
+curl -X POST http://127.0.0.1:8000/api/v1/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question":"What were the main revenue risks?","symbol":"TCS.NS"}'
+```
+
+## Configuration
+
+See `.env.example`. SQLite is used by default; set `DATABASE_PATH` to persist data elsewhere. Never commit `.env`, API keys, user documents, or database files.
+
+## Quality and limitations
+
+- Market data availability, delays, symbol coverage, and terms depend on Yahoo Finance/yfinance.
+- The application does not guarantee data accuracy or real-time execution prices.
+- RAG answer quality depends on document quality, chunk coverage, embedding availability, and the LLM. Inspect citations before relying on an answer.
+- No fabricated price forecasts or buy/sell recommendations are produced.
+- Run tests with `pytest`.
+
+## License
+
+MIT.
