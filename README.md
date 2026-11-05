@@ -69,3 +69,9 @@ See `.env.example`. SQLite is used by default; set `DATABASE_PATH` to persist da
 ## License
 
 MIT.
+
+## Deployment security boundary
+
+For a protected API deployment, set `ENVIRONMENT=production` and configure a strong `STOCKAI_API_KEY`. Protected API routes require the `X-API-Key` header; liveness and readiness endpoints remain public. Do not embed this shared key in browser JavaScript. Put the dashboard and API behind a trusted identity-aware reverse proxy, terminate TLS there, and add rate limiting and request quotas.
+
+The API-key option is a single shared credential, not user authentication or tenant isolation. The default SQLite database is suitable for a single-instance portfolio deployment, not a horizontally scaled multi-user service. Before public multi-user use, add per-user authorization, tenant-scoped document access, managed database/storage with backups, secret management, monitoring/alerts, and a tested deployment/rollback process. Market data is supplied by yfinance and has no availability or freshness SLA. Validate all financial answers against a labelled evaluation set before relying on them.
